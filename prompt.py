@@ -2,12 +2,19 @@ import openai
 import json
 import re
 
+import weaviate
 
-## This is the prompt organization and API key for the GPT-3 API
+
+# This is the prompt organization and API key for the GPT-3 API
 openai.organization = "org-swBTVHqAVDidEQXbYWMx0YVl"
-openai.api_key = "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"
+openai.api_key = "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"
+
 
 model_id = "gpt-3.5-turbo"
+
+auth_config = weaviate.AuthApiKey(api_key='NvRXfGrL8Ci1Hb3CazufLMIM9s2l3q6SbSsx')
+client = weaviate.Client("https://mediscanai-hi0v9ojp.weaviate.network", api_key=auth_config)
+
 
 # This prompt will set the conditions for the conversation
 prompt1 = """
@@ -20,30 +27,38 @@ In this role, you will be tasked with the following:
 
 During this conversation, ensure your responses are as detailed and accurate as possible. Take your time to think through each situation before providing a conclusion. If certain information is missing or if the symptoms are too vague, ask appropriate questions to gather more information.
 
-Once you believe you have enough information to make a preliminary assessment, provide a potential diagnosis. 
+Once you believe you have enough information to make a preliminary assessment, provide a potential diagnosis in following format [JSON OBJECT]: {'diagnosis': 'string', 'cure': 'string' , 'confidence': 'number', 'symptoms': ['string', 'string', ...]} . 
 
 To signal the end of the diagnosis process, you should conclude with the statement 'diagnosis-done'.
 """
 
 # This function will parse the diagnosis from the model's response
+
+
 def parse_diagnosis(text):
-    match = re.search("diagnosis: (.*), confidence: (.*), symptoms: (\[.*\])", text)
+    match = re.search(
+        "diagnosis: (.*), cure: (.*), confidence: (.*), symptoms: (\[.*\])", text)
     # will return a dictionary with the diagnosis, confidence, and symptoms
     # if the model's response matches the regex
     if match:
         diagnosis = match.group(1).strip()
-        confidence = float(match.group(2).strip())
-        symptoms = json.loads(match.group(3).strip())
+        cure = match.group(2).strip()
+        confidence = float(match.group(3).strip())
+        symptoms = json.loads(match.group(4).strip())
+
         return {
             "diagnosis": diagnosis,
+            "cure": cure,
             "confidence": confidence,
             "symptoms": symptoms
         }
     else:
         return None
 # This function will ask the user for input until the model's response
+
+
 def ask_until_done():
-    messages= [
+    messages = [
         {"role": "system", "content": prompt1},
     ]
 # This while loop will continue to ask the user for input until the model's response
@@ -69,6 +84,8 @@ def ask_until_done():
         diagnosis = parse_diagnosis(model_message)
         if diagnosis:
             print("Parsed Diagnosis: ", diagnosis)
+
+
 # This will save the diagnosis to a JSON file
 ask_until_done()
 
@@ -79,12 +96,14 @@ Assume the role of a highly knowledgeable AI doctor, utilizing all the medical j
 
 In this role, you will be tasked with the following:
 1. Listen to JSON object given by a user, which contains a description of symptoms or conditions presented by a user.
-2. Create JSON object with the searchable query terms that will help identify papers that are relevant to the user's symptoms. Optimize the query terms for search of all engines including Google, Bing, and DuckDuckGo.
+2. Create JSON object with the searchable query terms that will help identify papers that are relevant to the user's symptoms. Optimize the query terms for pub med, the medical archive.
 
 To signal the end of the diagnosis process, you should conclude with the statement 'query-terms-complete'.
 """
 
 # This function will parse the search terms from the model's response
+
+
 def parse_search_terms(text):
     match = re.search("'search_terms': (\[.*\])", text)
     if match:
@@ -94,6 +113,8 @@ def parse_search_terms(text):
         return None
 
 # This function will ask the user for input until the model's response
+
+
 def ask_until_done_query_terms():
     messages = [
         {"role": "system", "content": prompt2},
@@ -124,5 +145,7 @@ def ask_until_done_query_terms():
             with open('search_terms.json', 'w') as f:
                 json.dump(search_terms, f)
             print("Search terms saved to 'search_terms.json'.")
+
+
 # This will save the search terms to a JSON file
 ask_until_done_query_terms()
