@@ -49,3 +49,4 @@ with open('articles.json') as f:
 # Insert data into Weaviate
 for article in data:
     client.data_object.create(data_object=article, class_name="ResearchArticle")
+
