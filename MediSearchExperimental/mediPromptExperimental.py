@@ -16,6 +16,8 @@ from langchain.schema import (
     SystemMessage
 )
 
+from langchain import OpenAI
+
 from  langchain.tools import DuckDuckGoSearchResults
 
 
@@ -41,13 +43,13 @@ SEARCH_URL = BASE_URL + "esearch.fcgi"
 FETCH_URL = BASE_URL + "efetch.fcgi"
 
 auth_config = weaviate.AuthApiKey(
-    api_key='NvRXfGrL8Ci1Hb3CazufLMIM9s2l3q6SbSsx')
+    api_key='Enter key here')
 client = weaviate.Client(
-    "https://mediscanai-hi0v9ojp.weaviate.network", auth_client_secret=auth_config)
+    "Enter URL LINK to database here", auth_client_secret=auth_config)
 
 # Initialize the chat model with your API key and a temperature value
-chat = ChatOpenAI(
-    temperature=0.2, openai_api_key="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")
+chat = OpenAI(
+    temperature=0.2, openai_api_key="enter key here")
 
 def extract_and_create_json(response_content):
     # Extract the part of the string that corresponds to the dictionary
@@ -96,27 +98,10 @@ chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt])
 conversation = [SystemMessage(content=system_template.format())]
 
 
+# Get user input
 
 while True:
-    # User's turn
-    # Replace with your method of obtaining user input
     user_input = input("User: ")
-    # Check if user input is a search for a specific title
-    # if user_input.lower().startswith("search for"):
-    #     title = user_input[11:]  # Extract the title from the user input
-    #     articles = ps.search_title_weaviate(title)
-
-    #     # Check if any articles were found
-    #     if articles:
-    #         article = articles[0]
-
-    #         print(
-    #             f"Title: {article['title']}, Explanation: {article['abstract']}")
-    #         continue  # Skip the rest of the loop and wait for the next user input
-    #     else:
-    #         print(f"No article found with title: {title}")
-    #         continue
-    # conversation.append(HumanMessage(content=user_input))
 
     # Generate response
     chat_input = chat_prompt.format_prompt().to_messages()
@@ -152,53 +137,53 @@ while True:
         exit()
     
 
-        # duckduckgo_summary = search_duckduckgo(query_terms)
-        # print(duckduckgo_summary)
-        # # Search the Weaviate index
-        # search_params = {"query": f"""
-        # {{
-        #     Get {{
-        #         ResearchArticle(
-        #             explore: {{nearText: {{query: "{query_terms}", certainty: 0.7}}}}
-        #             limit: 5
-        #         ) {{
-        #             title
-        #             abstract
-        #             authors
-        #             citation
-        #         }}
-        #     }}
-        # }}"""}
+        duckduckgo_summary = search_duckduckgo(query_terms)
+        print(duckduckgo_summary)
+        # Search the Weaviate index
+        search_params = {"query": f"""
+        {{
+            Get {{
+                ResearchArticle(
+                    explore: {{nearText: {{query: "{query_terms}", certainty: 0.7}}}}
+                    limit: 5
+                ) {{
+                    title
+                    abstract
+                    authors
+                    citation
+                }}
+            }}
+        }}"""}
 
-        # search_response = client.query.raw(query=json.dumps(search_params))
-        # articles = search_response['data']['Get']['ResearchArticle']
+        search_response = client.query.raw(query=json.dumps(search_params))
+        articles = search_response['data']['Get']['ResearchArticle']
 
-        # # Check if there are any articles in Weaviate
-        # if articles:
-        #     print("Articles in Weaviate:")
-        #     for article in articles:
-        #         print(
-        #             f"Title: {article['title']}, Authors: {article['authors']}, Citation: {article['citation']}")
+        # Check if there are any articles in Weaviate
+        if articles:
+            print("Articles in Weaviate:")
+            for article in articles:
+                print(
+                    f"Title: {article['title']}, Authors: {article['authors']}, Citation: {article['citation']}")
 
-        #     # Continue conversation with user
-        #     continue
-        # else:
-        #     # If there are no articles in Weaviate, fetch data from Pubmed and store in Weaviate
-        #     fetched_content = ps.search_and_fetch(query_terms)
-        #     articles = ps.parse_pubmed_xml(fetched_content, query_terms)
-        #     for article in articles:
-        #         client.data_object.create(
-        #             data_object=article, class_name="ResearchArticle")
+            # Continue conversation with user
+            continue
+        else:
+            # If there are no articles in Weaviate, fetch data from Pubmed and store in Weaviate
+            fetched_content = ps.search_and_fetch(query_terms)
+            articles = ps.parse_pubmed_xml(fetched_content, query_terms)
+            for article in articles:
+                client.data_object.create(
+                    data_object=article, class_name="ResearchArticle")
 
-        #     # Retrieve and present the new articles to the user
-        #     search_response = client.query.raw(query=json.dumps(search_params))
-        #     articles = search_response['data']['Get']['ResearchArticle']
+            # Retrieve and present the new articles to the user
+            search_response = client.query.raw(query=json.dumps(search_params))
+            articles = search_response['data']['Get']['ResearchArticle']
 
-        #     if articles:
-        #         print("Articles fetched from Pubmed and stored in Weaviate:")
-        #         for article in articles:
-        #             print(
-        #                 f"Title: {article['title']}, Authors: {article['authors']}, Citation: {article['citation']}")
-        #     else:
-        #         print("Done.")
-        #         break
+            if articles:
+                print("Articles fetched from Pubmed and stored in Weaviate:")
+                for article in articles:
+                    print(
+                        f"Title: {article['title']}, Authors: {article['authors']}, Citation: {article['citation']}")
+            else:
+                print("Done.")
+                break
