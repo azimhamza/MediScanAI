@@ -12,8 +12,6 @@ openai.api_key = "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"
 
 model_id = "gpt-3.5-turbo"
 
-auth_config = weaviate.AuthApiKey(api_key='NvRXfGrL8Ci1Hb3CazufLMIM9s2l3q6SbSsx')
-client = weaviate.Client("https://mediscanai-hi0v9ojp.weaviate.network", api_key=auth_config)
 
 
 # This prompt will set the conditions for the conversation
